@@ -119,7 +119,7 @@ namespace PoirotCollectionApp
                 // Update the ListView with the sorted and filtered books
                 BooksListView.ItemsSource = new ObservableCollection<PoirotCollection>(sortedBooks);
 
-                // Update the indicator to show the correct sorting state
+                // Update the sorting indicator label dynamically
                 SortIndicatorLabel.Text = $"Currently sorted by: {_currentSort}";
             }
             catch (Exception ex)
@@ -127,6 +127,7 @@ namespace PoirotCollectionApp
                 await DisplayAlert("Error", $"An error occurred while applying search and sort: {ex.Message}", "OK");
             }
         }
+
 
 
         // Event triggered when the SearchBar's text changes
