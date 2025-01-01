@@ -1,9 +1,9 @@
-﻿using PoirotCollectionApp.DataAccess; // For DatabaseHelper
-using PoirotCollectionApp.Models; // For Book and User models
-using System; // For general system utilities
-using System.ComponentModel; // For INotifyPropertyChanged
+﻿using PoirotCollectionApp.DataAccess; // Handles database interactions
+using PoirotCollectionApp.Models; // Defines models like PoirotCollection and User
+using System; // General system utilities
+using System.ComponentModel; // For property change notifications
 using System.Runtime.CompilerServices; // For CallerMemberName attribute
-using Microsoft.Maui.Controls; // For UI elements
+using Microsoft.Maui.Controls; // UI elements and navigation
 using System.Linq; // For LINQ queries
 using System.Collections.ObjectModel; // For ObservableCollection
 
@@ -11,11 +11,13 @@ namespace PoirotCollectionApp
 {
     public partial class BrowsePage : ContentPage, INotifyPropertyChanged
     {
-        private string _userName = string.Empty; // Stores the active user's name
-        private int _userId; // Stores the active user's ID
-        private string _currentFilter = "All"; // Tracks the current filter: Owned, Wishlist, or All
-        private bool _isAscending = true; // Tracks whether sorting is A-Z (true) or Z-A (false)
+
+        private string _userName = string.Empty; // Stores the current user's name
+        private int _userId; // Stores the current user's ID
+        private string _currentFilter = "All"; // Tracks the active filter: Owned, Wishlist, or All
+        private bool _isAscending = true; // Indicates sorting order (true for A-Z, false for Z-A)
         private string _currentSort = "Year"; // Tracks the current sorting state (Year, A-Z, Z-A)
+
 
         public string UserName
         {
@@ -39,68 +41,125 @@ namespace PoirotCollectionApp
                 {
                     _currentFilter = value;
                     OnPropertyChanged();
-                    UpdateButtonStyles(); // Update button styles when the filter changes
+                    UpdateButtonStyles(); // Update button visuals when filter changes
                 }
             }
         }
 
+        // Notifies the UI of any property changes
         public new event PropertyChangedEventHandler? PropertyChanged;
 
-        // Constructor that takes in the UserID and UserName
+        // Constructor - Initialize the page with the user's data
         public BrowsePage(int userId, string userName)
         {
             InitializeComponent();
 
-            // Set the active user's information
+            // Set the current users information
             _userId = userId;
             UserName = userName;
 
             CurrentFilter = "Owned"; // Default filter
-            BindingContext = this; // Bind data to the UI
+            BindingContext = this; // Bind UI to this class
 
-            SortButton.Text = "Year"; // Set initial button text to indicate database order
-            ApplySearchAndSort(); // Load books and apply sorting
+            SortButton.Text = "Year"; // Default sorting 
+            ApplySearchAndSort(); // Load and sort the book list
         }
 
-        // Filter the book list to show "Owned" books
+        // Filter Handlers - Changes the active filter and refreshes the book list
         private void FilterOwned(object sender, EventArgs e)
         {
-            CurrentFilter = "Owned"; // Set the filter
-            ApplySearchAndSort(); // Apply search and sorting with the updated filter
+            CurrentFilter = "Owned";
+            ApplySearchAndSort();
         }
 
-        // Filter the book list to show "Wishlist" books
         private void FilterWishlist(object sender, EventArgs e)
         {
-            CurrentFilter = "Wishlist"; // Set the filter
-            ApplySearchAndSort(); // Apply search and sorting with the updated filter
+            CurrentFilter = "Wishlist";
+            ApplySearchAndSort();
         }
 
-        // Filter the book list to show "All" books
         private void FilterAll(object sender, EventArgs e)
         {
-            CurrentFilter = "All"; // Set the filter
-            ApplySearchAndSort(); // Apply search and sorting with the updated filter
+            CurrentFilter = "All";
+            ApplySearchAndSort();
         }
 
+        // Sorting Handler - Cycle through sorting options (Year, A-Z, Z-A)
+        private void OnSortButtonClicked(object sender, EventArgs e)
+        {
+            switch (_currentSort)
+            {
+                case "Year":
+                    _currentSort = "A-Z";
+                    _isAscending = true;
+                    break;
+                case "A-Z":
+                    _currentSort = "Z-A";
+                    _isAscending = false;
+                    break;
+                case "Z-A":
+                    _currentSort = "Year";
+                    break;
+            }
+
+            SortButton.Text = _currentSort; // Update sort button text
+            SortIndicatorLabel.Text = $"Currently sorted by: {_currentSort}"; // Update sort label
+            ApplySearchAndSort();
+        }
+
+        // Navigation Handlers - Navigate back or change the active user
+        private async void OnBackButtonClicked(object sender, EventArgs e)
+        {
+            await Navigation.PopAsync(); // Return to the previous page
+        }
+
+        private async void OnChangeUserClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                var dbHelper = new DatabaseHelper();
+                var users = await dbHelper.GetUsersAsync();
+                var userNames = users.Select(u => u.Username).ToArray();
+
+                string selectedUser = await DisplayActionSheet("Select User", "Cancel", null, userNames);
+
+                if (selectedUser != "Cancel")
+                {
+                    string previousSort = _currentSort; // Preserve sorting preference
+                    var selected = users.First(u => u.Username == selectedUser);
+                    _userId = selected.UserID;
+                    UserName = selected.Username;
+
+                    CurrentFilter = "All"; // Reset filter
+                    _currentSort = previousSort; // Restore sorting
+                    ApplySearchAndSort();
+                }
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Error", $"Failed to load users: {ex.Message}", "OK");
+            }
+        }
+
+        // Search Handler - Filter the book list based on search input
+        private void OnSearchBarTextChanged(object sender, TextChangedEventArgs e)
+        {
+            ApplySearchAndSort();
+        }
+
+        // Main Method - Apply filtering, sorting, and searching to the book list
         private async void ApplySearchAndSort()
         {
             try
             {
-                // Capture the search text
                 string searchText = SearchBar.Text?.Trim().ToLower() ?? string.Empty;
-
                 var dbHelper = new DatabaseHelper();
-
-                // Fetch books based on the current filter (Owned, Wishlist, All)
                 var books = await dbHelper.GetPoirotCollectionAsync(_userId, CurrentFilter);
 
-                // Apply search filtering
                 var filteredBooks = string.IsNullOrEmpty(searchText)
                     ? books
                     : books.Where(book => book.Title.ToLower().Contains(searchText)).ToList();
 
-                // Apply sorting based on the current sorting state
                 List<PoirotCollection> sortedBooks = filteredBooks;
 
                 switch (_currentSort)
@@ -116,142 +175,36 @@ namespace PoirotCollectionApp
                         break;
                 }
 
-                // Update the ListView with the sorted and filtered books
                 BooksListView.ItemsSource = new ObservableCollection<PoirotCollection>(sortedBooks);
-
-                // Update the sorting indicator label dynamically
                 SortIndicatorLabel.Text = $"Currently sorted by: {_currentSort}";
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Error", $"An error occurred while applying search and sort: {ex.Message}", "OK");
+                await DisplayAlert("Error", $"An error occurred: {ex.Message}", "OK");
             }
         }
 
-
-
-        // Event triggered when the SearchBar's text changes
-        private void OnSearchBarTextChanged(object sender, TextChangedEventArgs e)
+        // Book Selection - Navigate to the details page when a book is tapped
+        private async void OnBookTapped(object sender, ItemTappedEventArgs e)
         {
-            // Call the method to apply search and sorting
-            ApplySearchAndSort();
+            if (e.Item == null)
+                return;
+
+            var selectedBook = (PoirotCollection)e.Item;
+            var booksList = ((ObservableCollection<PoirotCollection>)BooksListView.ItemsSource).ToList();
+            var selectedIndex = booksList.IndexOf(selectedBook);
+
+            await Navigation.PushAsync(new TitleDetailsPage(booksList, selectedIndex));
+            ((ListView)sender).SelectedItem = null; // Clear the selection
         }
 
-        // Event handler for the Sort button to toggle sorting states
-        private void OnSortButtonClicked(object sender, EventArgs e)
-        {
-            // Cycle through the sorting states: "Year" → "A-Z" → "Z-A"
-            switch (_currentSort)
-            {
-                case "Year":
-                    _currentSort = "A-Z";
-                    _isAscending = true; // Start with A-Z sorting
-                    break;
-                case "A-Z":
-                    _currentSort = "Z-A";
-                    _isAscending = false; // Switch to Z-A sorting
-                    break;
-                case "Z-A":
-                    _currentSort = "Year";
-                    break;
-            }
-
-            // Update the button text to reflect the current sort state
-            SortButton.Text = _currentSort;
-
-            // Update the indicator label to display the current sorting state
-            SortIndicatorLabel.Text = $"Currently sorted by: {_currentSort}";
-
-            // Apply sorting and filtering based on the current state
-            ApplySearchAndSort();
-        }
-
-        // Event handler for navigating back to the previous page
-        private async void OnBackButtonClicked(object sender, EventArgs e)
-        {
-            await Navigation.PopAsync(); // Go back to the previous page
-        }
-
-        // Event triggered when the user clicks "Change User"
-        private async void OnChangeUserClicked(object sender, EventArgs e)
-        {
-            try
-            {
-                var dbHelper = new DatabaseHelper();
-                var users = await dbHelper.GetUsersAsync(); // Fetch the list of users
-                var userNames = users.Select(u => u.Username).ToArray(); // Extract usernames
-
-                // Display the list of users to choose from
-                string selectedUser = await DisplayActionSheet("Select User", "Cancel", null, userNames);
-
-                if (selectedUser != "Cancel")
-                {
-                    // Preserve the current sorting state
-                    string previousSort = _currentSort;
-
-                    // Find the selected user and update the active user
-                    var selected = users.First(u => u.Username == selectedUser);
-                    _userId = selected.UserID;
-                    UserName = selected.Username;
-
-                    // Reload books for the new user
-                    CurrentFilter = "All"; // Reset to show all books initially
-                    _currentSort = previousSort; // Restore the previous sorting state
-                    ApplySearchAndSort(); // Apply search, filter, and sorting logic
-                }
-            }
-            catch (Exception ex)
-            {
-                // Handle errors
-                await DisplayAlert("Error", $"Failed to load users: {ex.Message}", "OK");
-            }
-        }
-
-
-        // Load books based on the selected filter
-        private async void LoadBooks(string filter)
-        {
-            try
-            {
-                var dbHelper = new DatabaseHelper();
-                var books = await dbHelper.GetPoirotCollectionAsync(_userId, filter);
-
-                // Apply the current sort order to the loaded books
-                var sortedBooks = books;
-
-                switch (_currentSort)
-                {
-                    case "A-Z":
-                        sortedBooks = books.OrderBy(book => book.Title).ToList();
-                        break;
-                    case "Z-A":
-                        sortedBooks = books.OrderByDescending(book => book.Title).ToList();
-                        break;
-                    case "Year":
-                        sortedBooks = books.OrderBy(book => book.ReleaseDate).ToList();
-                        break;
-                }
-
-                // Update the ListView with sorted books
-                BooksListView.ItemsSource = new ObservableCollection<PoirotCollection>(sortedBooks);
-            }
-            catch (Exception ex)
-            {
-                // Display an error message
-                await DisplayAlert("Error", $"Failed to load books: {ex.Message}", "OK");
-            }
-        }
-
-
-        // Updates button styles based on the active filter
+        // Helper Method - Update button styles based on the active filter
         private void UpdateButtonStyles()
         {
-            // Reset all button styles to LightGray
             OwnedButton.BackgroundColor = Colors.LightGray;
             WishlistButton.BackgroundColor = Colors.LightGray;
             AllButton.BackgroundColor = Colors.LightGray;
 
-            // Highlight the button for the active filter
             switch (CurrentFilter)
             {
                 case "Owned":
@@ -266,35 +219,11 @@ namespace PoirotCollectionApp
             }
         }
 
-        // Notify the UI when a property changes
+        // Notify the UI of property changes
         protected override void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             base.OnPropertyChanged(propertyName);
         }
-
-        // BrowsePage.xaml.cs (OnBookTapped Method)
-        private async void OnBookTapped(object sender, ItemTappedEventArgs e)
-        {
-            if (e.Item == null)
-                return; // Prevent errors if no item is tapped
-
-            // Retrieve the selected book object
-            var selectedBook = (PoirotCollection)e.Item;
-
-            // Get the current list of filtered and sorted books
-            var booksList = ((ObservableCollection<PoirotCollection>)BooksListView.ItemsSource).ToList();
-
-            // Find the index of the selected book in the current list
-            var selectedIndex = booksList.IndexOf(selectedBook);
-
-            // Navigate to the TitleDetailsPage and pass the list and selected index
-            await Navigation.PushAsync(new TitleDetailsPage(booksList, selectedIndex));
-
-            // Deselect the tapped item to avoid retaining its highlight
-            ((ListView)sender).SelectedItem = null;
-        }
-
-
     }
 }
