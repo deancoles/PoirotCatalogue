@@ -42,7 +42,7 @@
                     BackgroundColor="Purple"
                     TextColor="White"
                     Clicked="FilterOwned" />
-            <Button Text="Wishlist"
+            <Button Text="Unowned"
                     x:Name="WishlistButton"
                     BackgroundColor="LightGray"
                     TextColor="Black"
