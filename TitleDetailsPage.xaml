@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="PoirotCollectionApp.TitleDetailsPage">
+
+    <VerticalStackLayout Padding="20">
+            <!-- Back Button -->
+        <Button Text="Back"
+                BackgroundColor="Red"
+                TextColor="White"
+                FontSize="14"
+                HorizontalOptions="Start"
+                Margin="10,0"
+                Clicked="OnBackButtonClicked" />
+        
+        <!-- Display the book title -->
+        <Label Text="Book Title"
+               FontSize="24"
+               FontAttributes="Bold"
+               HorizontalOptions="Center" />
+        <Label x:Name="TitleLabel"
+               FontSize="18"
+               HorizontalOptions="Center" />
+
+        <!-- Display the release date -->
+        <Label Text="Release Date"
+               FontSize="20"
+               FontAttributes="Bold"
+               HorizontalOptions="Center" />
+        <Label x:Name="ReleaseDateLabel"
+               FontSize="18"
+               HorizontalOptions="Center" />
+
+        <!-- Book Cover -->
+        <Image x:Name="CoverImage"
+               HeightRequest="300"
+               WidthRequest="200"
+               Aspect="AspectFit"
+               HorizontalOptions="Center" />
+
+        <!-- Display the book description -->
+        <Label Text="Description"
+               FontSize="20"
+               FontAttributes="Bold"
+               HorizontalOptions="Center" />
+        <Label x:Name="DescriptionLabel"
+               FontSize="16"
+               HorizontalOptions="Center"
+               VerticalOptions="StartAndExpand" />
+
+        <!-- Navigation Arrows -->
+        <HorizontalStackLayout Spacing="20" HorizontalOptions="Center">
+            <Button Text="←"
+                    WidthRequest="50"
+                    Clicked="OnPreviousBookClicked" />
+            <Button Text="→"
+                    WidthRequest="50"
+                    Clicked="OnNextBookClicked" />
+        </HorizontalStackLayout>
+    </VerticalStackLayout>
+</ContentPage>

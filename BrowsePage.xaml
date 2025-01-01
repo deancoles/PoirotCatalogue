@@ -1,0 +1,85 @@
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="PoirotCollectionApp.BrowsePage">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="10">
+            <!-- Back button -->
+            <Button Text="Back"
+                    BackgroundColor="Red"
+                    TextColor="White"
+                    FontSize="14"
+                    HorizontalOptions="Start"
+                    Margin="10,0"
+                    Clicked="OnBackButtonClicked" />
+
+            <!-- User information -->
+            <Label Text="{Binding UserName}"
+                    FontSize="20"
+                    HorizontalOptions="Center" 
+                    Margin="0,-10,-28,0" />
+            <Button Text="Change User"
+                    HorizontalOptions="Center"
+                    Margin="0,05,-18,0"
+                    Clicked="OnChangeUserClicked" />
+
+            <!-- Filter buttons -->
+            <HorizontalStackLayout HorizontalOptions="Center">
+                <Button x:Name="OwnedButton" Text="Owned" Margin="0,02,02,0" Clicked="FilterOwned" />
+                <Button x:Name="WishlistButton" Text="Unowned" Margin="00,02,02,0" Clicked="FilterWishlist" />
+                <Button x:Name="AllButton" Text="All" Margin="0,02,02,0" Clicked="FilterAll" />
+            </HorizontalStackLayout>
+
+            <!-- SearchBar and SortButton -->
+            <HorizontalStackLayout Margin="10,0,10,0">
+
+                <!-- Search -->
+                <SearchBar x:Name="SearchBar"
+                    Placeholder="Search books..."
+                    TextChanged="OnSearchBarTextChanged"
+                    HorizontalOptions="FillAndExpand" />
+
+                <!-- Sort -->
+                <Button x:Name="SortButton"
+                    Text="A-Z"
+                    WidthRequest="70"
+                    HorizontalOptions="End"
+                    Clicked="OnSortButtonClicked" />
+            </HorizontalStackLayout>
+
+            <!-- Indicator Label -->
+            <Label x:Name="SortIndicatorLabel"
+                    Text="Currently sorted by: Year"
+                    HorizontalOptions="Center"
+                    FontSize="12"
+                    TextColor="Gray" />
+
+
+            <!-- ListView to display books -->
+            <ListView x:Name="BooksListView"
+          ItemTapped="OnBookTapped"
+          ItemsSource="{Binding FilteredBooks}">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <ViewCell>
+                            <StackLayout Padding="10">
+                                <!-- Book Title -->
+                                <Label Text="{Binding Title}"
+                           FontSize="20"
+                           FontAttributes="Bold"
+                           TextColor="Black" />
+
+                                <!-- Book Description -->
+                                <Label Text="{Binding Notes}"
+                           FontSize="16"
+                           TextColor="Gray"
+                           LineBreakMode="WordWrap" />
+                            </StackLayout>
+                        </ViewCell>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
